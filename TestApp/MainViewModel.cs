@@ -52,6 +52,8 @@ public class MainViewModel : ViewModelBase
 
     private void ModifyItems()
     {
+        CallGC();
+
         var newItems = CreateItemsList();
         this.ItemsSource.Clear();
         foreach (var newItem in newItems)
@@ -74,11 +76,15 @@ public class MainViewModel : ViewModelBase
 
     private void RefreshMemoryInfo()
     {
+        CallGC();
+        this.MemoryInfo = CreateMemoryInfo();
+    }
+
+    private static void CallGC()
+    {
         GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
-
-        this.MemoryInfo = CreateMemoryInfo();
     }
 
     private static string CreateMemoryInfo()
