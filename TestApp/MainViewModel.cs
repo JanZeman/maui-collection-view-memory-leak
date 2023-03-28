@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿using System.Collections.ObjectModel;
 using System.Text;
 using System.Windows.Input;
 
@@ -8,8 +8,10 @@ public class MainViewModel : ViewModelBase
 {
     private int startIndex;
     private int itemsCount;
-    private IList itemsSource;
+    private ObservableCollection<string> itemsSource;
     private string memoryInfo;
+
+    private static readonly Random Random = new();
 
     public MainViewModel(int startIndex, int itemsCount)
     {
@@ -17,13 +19,14 @@ public class MainViewModel : ViewModelBase
         this.itemsCount = itemsCount;
 
         this.RefreshItemsSourceCommand = new Command(this.RefreshItemsSource);
+        this.ModifyItemsCommand = new Command(this.ModifyItems);
         this.RefreshMemoryInfoCommand = new Command(this.RefreshMemoryInfo);
 
         this.RefreshItemsSource();
         this.RefreshMemoryInfo();
     }
 
-    public IList ItemsSource
+    public ObservableCollection<string> ItemsSource
     {
         get => itemsSource;
         private set => this.SetValue(ref this.itemsSource, value);
@@ -37,19 +40,36 @@ public class MainViewModel : ViewModelBase
 
     public ICommand RefreshItemsSourceCommand { get; }
 
+    public ICommand ModifyItemsCommand { get;  }
+
     public ICommand RefreshMemoryInfoCommand { get; }
 
     private void RefreshItemsSource()
     {
-        this.ItemsSource = this.CreateItemsSource();
+        this.ItemsSource = this.CreateNewItemsSource();
         this.startIndex += this.itemsCount;
     }
 
-    private IList CreateItemsSource()
+    private void ModifyItems()
+    {
+        var newItems = CreateItemsList();
+        this.ItemsSource.Clear();
+        foreach (var newItem in newItems)
+        {
+            this.ItemsSource.Add($"{newItem} {RandomString(3)}" );
+        }
+    }
+
+    private ObservableCollection<string> CreateNewItemsSource()
+    {
+        return new ObservableCollection<string>(CreateItemsList());
+    }
+
+    private List<string> CreateItemsList()
     {
         return Enumerable.Range(this.startIndex, this.itemsCount)
-                         .Select(itemIndex => $"Item {itemIndex}")
-                         .ToList();
+            .Select(itemIndex => $"Item {itemIndex}")
+            .ToList();
     }
 
     private void RefreshMemoryInfo()
@@ -58,16 +78,23 @@ public class MainViewModel : ViewModelBase
         GC.WaitForPendingFinalizers();
         GC.Collect();
 
-        this.MemoryInfo = this.CreateMemoryInfo();
+        this.MemoryInfo = CreateMemoryInfo();
     }
 
-    private string CreateMemoryInfo()
+    private static string CreateMemoryInfo()
     {
-        var memoryInfo = new StringBuilder();
+        var memoryInfoBuilder = new StringBuilder();
 
-        memoryInfo.AppendLine($"Total objects: {MemoryTracker.TotalObjectCount}");
-        memoryInfo.AppendLine($"Alive objects: {MemoryTracker.AliveObjectCount}");
+        memoryInfoBuilder.AppendLine($"Total objects: {MemoryTracker.TotalObjectCount}");
+        memoryInfoBuilder.AppendLine($"Alive objects: {MemoryTracker.AliveObjectCount}");
 
-        return memoryInfo.ToString();
+        return memoryInfoBuilder.ToString();
+    }
+
+    private static string RandomString(int length)
+    {
+        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        return new string(Enumerable.Repeat(chars, length)
+            .Select(s => s[Random.Next(s.Length)]).ToArray());
     }
 }
